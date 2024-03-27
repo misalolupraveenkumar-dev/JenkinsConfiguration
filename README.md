@@ -1,7 +1,9 @@
 # JenkinsConfiguration
 
-Configuring the jenkins with git!!!
+Configuring the Jenkins with git!!!
 
-This is origin branch README.md file!!!
+This is the origin branch README.md file!!!
+
+
 
 
