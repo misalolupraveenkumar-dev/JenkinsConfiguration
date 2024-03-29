@@ -1,0 +1,203 @@
+<project name="${Environment}build" default="bldtest" basedir=".">
+<property file="babuild${Environment}.properties"/>
+<target name="checkcond">
+<startBuildActivity activityIdProperty="checkcond" label="CHECK FLAGS..." buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<property name="debugopt" value="-n"/>
+<condition property="sqlmodon">
+<or>
+<equals arg1="${BldSQL}" arg2="YES"/>
+<equals arg1="${BldSQL}" arg2="yes"/>
+<equals arg1="${BldSQL}" arg2="y"/>
+<equals arg1="${BldSQL}" arg2="Y"/>
+</or>
+</condition>
+<condition property="sqlmodoff">
+<not>
+<or>
+<equals arg1="${BldSQL}" arg2="YES"/>
+<equals arg1="${BldSQL}" arg2="yes"/>
+<equals arg1="${BldSQL}" arg2="y"/>
+<equals arg1="${BldSQL}" arg2="Y"/>
+</or>
+</not>
+</condition>
+<condition property="regbuild">
+<not>
+<or>
+<equals arg1="${Rebuild}" arg2="YES"/>
+<equals arg1="${Rebuild}" arg2="yes"/>
+<equals arg1="${Rebuild}" arg2="y"/>
+<equals arg1="${Rebuild}" arg2="Y"/>
+</or>
+</not>
+</condition>
+<condition property="rerun">
+<or>
+<equals arg1="${Rebuild}" arg2="YES"/>
+<equals arg1="${Rebuild}" arg2="yes"/>
+<equals arg1="${Rebuild}" arg2="y"/>
+<equals arg1="${Rebuild}" arg2="Y"/>
+</or>
+</condition>
+<condition property="bkfiles">
+<or>
+<equals arg1="${Bkup}" arg2="YES"/>
+<equals arg1="${Bkup}" arg2="yes"/>
+<equals arg1="${Bkup}" arg2="y"/>
+<equals arg1="${Bkup}" arg2="Y"/>
+</or>
+</condition>
+<condition property="updmod">
+<or>
+<equals arg1="${update}" arg2="NO"/>
+<equals arg1="${update}" arg2="no"/>
+<equals arg1="${update}" arg2="n"/>
+<equals arg1="${update}" arg2="N"/>
+</or>
+</condition>
+<condition property="delmod">
+<or>
+<equals arg1="${delete}" arg2="YES"/>
+<equals arg1="${delete}" arg2="yes"/>
+<equals arg1="${delete}" arg2="y"/>
+<equals arg1="${delete}" arg2="Y"/>
+</or>
+</condition>
+<completeBuildActivity activityId="${checkcond}" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+</target>
+<target name="init" depends="checkcond">
+<echo>ANT Java/JVM version: ${ant.java.version}</echo>
+<echo>Java/JVM detail version: ${java.version}</echo>
+<exec executable="hostname" outputproperty="host.name"/>
+<echo>Host name: ${host.name}</echo>
+<property name="system" value="/aa2/baa"/>
+<echo>Backup indicator: ${Bkup}</echo>
+</target>
+<target name="sqlchk" depends="init" if="sqlmodon">
+<echo message="RUNNING SQL"/>
+<property name="sopt" value="-s"/>
+</target>
+<target name="sqlchk1" depends="sqlchk" if="sqlmodoff">
+<property name="sopt" value="-n"/>
+</target>
+<target name="drychk" depends="sqlchk1" if="updmod">
+<echo message="RUNNING dryind"/>
+<property name="dryind" value="n"/>
+</target>
+<target name="delchk" depends="drychk" if="delmod">
+<echo message="DELETING MODULES"/>
+<property name="delind" value="--delete"/>
+</target>
+<target name="build1" depends="delchk" if="regbuild">
+<echo message="RUNNING REGULAR BUILD"/>
+<property name="buildopt" value="-n"/>
+</target>
+<target name="build2" depends="build1" if="rerun">
+<echo message="RUNNING REBUILD"/>
+<property name="buildopt" value="-r"/>
+</target>
+<target name="check" depends="build1, build2">
+<startBuildActivity activityIdProperty="check" label="BUILD CHECK..." buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<completeBuildActivity activityId="${check}" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+</target>
+<target name="clean" depends="check">
+<!--  Start "clean" RTC activity  -->
+<startBuildActivity activityIdProperty="clean" label="CLEANING DIRECTORIES..." buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<!--  delete directory ${build.dir}  -->
+<delete dir="${build.dir}"/>
+<!--  Finish "clean" RTC activity  -->
+<completeBuildActivity activityId="${clean}" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+</target>
+<target name="backup" depends="clean" if="bkfiles">
+<!--  Start "deploy" RTC activity  -->
+<startBuildActivity activityIdProperty="backup" label="BACKING UP MODULES..." buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<exec executable="whoami"> </exec>
+<sshexec host="${unixserver}" trust="true" username="${unixid}" keyfile="${unixpassword}" command="umask 022; echo started backup; mkdir -p ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; mkdir -p ${system}/build/logfiles/${Environment}/backup_${buildLabel}/modified_core/; mkdir -p ${system}/build/logfiles/${Environment}/backup_${buildLabel}/obj/; cp -r -p ${system}/${Environment}/surround/c/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/cmd/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/cobbuff/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/cobincl/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/coblist/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/cobmacro/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/cobol/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/hacopy/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/instructions/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/odscode/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/port/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/pub/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/sql/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/sql-onetime/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/sql-package/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/jcl/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/java/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/obj/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/surround/webapps/ ${system}/build/logfiles/${Environment}/backup_${buildLabel}/surround/; cp -r -p ${system}/${Environment}/modified_core/cobbuff ${system}/build/logfiles/${Environment}/backup_${buildLabel}/modified_core/; cp -r -p ${system}/${Environment}/modified_core/cobincl ${system}/build/logfiles/${Environment}/backup_${buildLabel}/modified_core/; cp -r -p ${system}/${Environment}/modified_core/coblist ${system}/build/logfiles/${Environment}/backup_${buildLabel}/modified_core/; cp -r -p ${system}/${Environment}/modified_core/cobmbr ${system}/build/logfiles/${Environment}/backup_${buildLabel}/modified_core/; cp -r -p ${system}/${Environment}/modified_core/cobmacro ${system}/build/logfiles/${Environment}/backup_${buildLabel}/modified_core/; cp -r -p ${system}/${Environment}/modified_core/cobol ${system}/build/logfiles/${Environment}/backup_${buildLabel}/modified_core/; cp -r -p ${system}/${Environment}/modified_core/java ${system}/build/logfiles/${Environment}/backup_${buildLabel}/modified_core/; cp -r -p ${system}/${Environment}/modified_core/jcl ${system}/build/logfiles/${Environment}/backup_${buildLabel}/modified_core/; cp -r -p ${system}/${Environment}/obj ${system}/build/logfiles/${Environment}/backup_${buildLabel}/; echo completed backup"/>
+<completeBuildActivity activityId="${backup}" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+</target>
+<target name="deploy" depends="backup" if="regbuild">
+<!--  Start "compile" RTC activity  -->
+<startBuildActivity activityIdProperty="deploy" label="DEPLOYING MODULES..." buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<exec executable="whoami"> </exec>
+<sshexec host="${unixserver}" trust="true" username="${unixid}" keyfile="${unixpassword}" command="umask 022; touch ${system}/${Environment}/buildtime; sleep 60; echo started rsync surround/c; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/c ${system}/${Environment}/surround; echo completed rsync surround/c; echo started rsync surround/cmd; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/cmd ${system}/${Environment}/surround; echo completed rsync surround/cmd; echo started rsync surround/cobbuff; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/cobbuff ${system}/${Environment}/surround; echo completed rsync surround/cobbuff; echo started rsync surround/cobincl; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/cobincl ${system}/${Environment}/surround; echo completed rsync surround/cobincl; echo started rsync surround/coblist; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/coblist ${system}/${Environment}/surround; echo completed rsync surround/coblist; echo started rsync surround/cobmacro; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/cobmacro ${system}/${Environment}/surround; echo completed rsync surround/cobmacro; echo started rsync surround/cobol; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/cobol ${system}/${Environment}/surround; echo completed rsync surround/cobol; echo started rsync surround/hacopy; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/hacopy ${system}/${Environment}/surround; echo completed rsync surround/hacopy; echo started rsync surround/instructions; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/instructions ${system}/${Environment}/surround; echo completed rsync surround/instructions; echo started rsync surround/java; /usr/local/bin/rsync -${dryind}rlv --update ${system}/build/${Release}/surround/java ${system}/${Environment}/surround; echo completed rsync surround/java; echo started rsync surround/odscode; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/odscode ${system}/${Environment}/surround; echo completed rsync surround/odscode; echo started rsync surround/port; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/port ${system}/${Environment}/surround; echo completed rsync surround/port; echo started rsync surround/pub; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/pub ${system}/${Environment}/surround; echo completed rsync surround/pub; echo started rsync surround/sql; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/sql ${system}/${Environment}/surround; echo completed rsync surround/sql; echo started rsync surround/sql-onetime; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/sql-onetime ${system}/${Environment}/surround; echo completed rsync surround/sql-onetime; echo started rsync surround/sql-package; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/sql-package ${system}/${Environment}/surround; echo completed rsync surround/sql-package; echo started rsync surround/jcl/template; /usr/local/bin/rsync -${dryind}rlv --update --delete ${system}/build/${Release}/surround/jcl/template ${system}/${Environment}/surround/jcl; echo completed rsync surround/jcl/template; echo started rsync surround/jcl/question; /usr/local/bin/rsync -${dryind}rlv --update --delete ${system}/build/${Release}/surround/jcl/question ${system}/${Environment}/surround/jcl; echo completed rsync surround/jcl/question; echo started rsync surround/webapps; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/surround/webapps ${system}/${Environment}/surround; echo completed rsync surround/webapps; echo started rsync modified_core/cobbuff; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/modified_core/cobbuff ${system}/${Environment}/modified_core; echo completed rsync modified_core/cobbuff; echo started rsync modified_core/cobincl; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/modified_core/cobincl ${system}/${Environment}/modified_core; echo completed rsync modified_core/cobincl; echo started rsync modified_core/coblist; /usr/local/bin/rsync -${dryind}rlv --update ${delind} ${system}/build/${Release}/modified_core/coblist ${system}/${Environment}/modified_core; echo completed rsync modified_core/coblist; echo started rsync modified_core/cobmbr; /usr/local/bin/rsync -${dryind}rlv --update ${system}/build/${Release}/modified_core/cobmbr ${system}/${Environment}/modified_core; echo completed rsync modified_core/cobmbr; echo started rsync modified_core/cobmacro; /usr/local/bin/rsync -${dryind}rlv --update ${system}/build/${Release}/modified_core/cobmacro ${system}/${Environment}/modified_core; echo completed rsync modified_core/cobmacro; echo started rsync modified_core/cobol; /usr/local/bin/rsync -${dryind}rlv --update ${system}/build/${Release}/modified_core/cobol ${system}/${Environment}/modified_core; echo completed rsync modified_core/cobol; echo started rsync modified_core/java; /usr/local/bin/rsync -${dryind}rlv --update ${system}/build/${Release}/modified_core/java ${system}/${Environment}/modified_core; echo completed rsync modified_core/java; echo started rsync modified_core/jcl/template; /usr/local/bin/rsync -${dryind}rlv --update --delete ${system}/build/${Release}/modified_core/jcl/template ${system}/${Environment}/modified_core/jcl; echo completed rsync modified_core/jcl/template; echo started rsync modified_core/jcl/question; /usr/local/bin/rsync -${dryind}rlv --update --delete ${system}/build/${Release}/modified_core/jcl/question ${system}/${Environment}/modified_core/jcl; echo completed rsync modified_core/jcl/question"/>
+<completeBuildActivity activityId="${deploy}" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+</target>
+<target name="compare" depends="deploy" if="regbuild">
+<!--  Start "compare" RTC activity  -->
+<startBuildActivity activityIdProperty="compare" label="COMPARING MODULES..." buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<sshexec host="${unixserver}" trust="true" username="${unixid}" keyfile="${unixpassword}" command="umask 022; cd ${system}/${Environment}; find surround/instructions -newer ./buildtime > ./modified_files.txt; find surround/sql -newer ./buildtime >> ./modified_files.txt; find surround/sql-onetime -newer ./buildtime >> ./modified_files.txt; find surround/sql-package -newer ./buildtime >> ./modified_files.txt; find surround/c -newer ./buildtime >> ./modified_files.txt; find surround/cmd -newer ./buildtime >> ./modified_files.txt; find modified_core/cobbuff -newer ./buildtime >> ./modified_files.txt; find modified_core/cobincl -newer ./buildtime >> ./modified_files.txt; find modified_core/coblist -newer ./buildtime >> ./modified_files.txt; find modified_core/cobmbr -newer ./buildtime >> ./modified_files.txt; find modified_core/cobol -newer ./buildtime >> ./modified_files.txt; find modified_core/java -newer ./buildtime >> ./modified_files.txt; find modified_core/jcl/template -newer ./buildtime >> ./modified_files.txt; find modified_core/jcl/question -newer ./buildtime >> ./modified_files.txt; find surround/hacopy -newer ./buildtime >> ./modified_files.txt; find surround/cobbuff -newer ./buildtime >> ./modified_files.txt; find surround/cobincl -newer ./buildtime >> ./modified_files.txt; find surround/coblist -newer ./buildtime >> ./modified_files.txt; find surround/cobmacro -newer ./buildtime >> ./modified_files.txt; find surround/cobol -newer ./buildtime >> ./modified_files.txt; find surround/java -newer ./buildtime >> ./modified_files.txt; find surround/jcl/question -newer ./buildtime >> ./modified_files.txt; find surround/jcl/template -newer ./buildtime >> ./modified_files.txt; find surround/odscode -newer ./buildtime >> ./modified_files.txt; find surround/port -newer ./buildtime >> ./modified_files.txt; find surround/pub -newer ./buildtime >> ./modified_files.txt; find surround/webapps -newer ./buildtime >> ./modified_files.txt"/>
+<!--  Finish "compare" RTC activity  -->
+<completeBuildActivity activityId="${compare}" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+</target>
+<target name="compile" depends="compare">
+<!--  Start "compile" RTC activity  -->
+<startBuildActivity activityIdProperty="compile" label="COMPILING MODULES..." buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<echo message="COPYING MODIFIED FILES"/>
+<sshexec host="${unixserver}" trust="true" username="${unixid}" keyfile="${unixpassword}" command="umask 022; cd ${system}/${Environment}; cp ./modified_files.txt ${system}/build/logfiles/${Environment}/modified_files_${buildLabel}.txt"/>
+<!--  Publish modified_files log to RTC  -->
+<logPublisher filePath="/build/BABuild/logfiles/${Environment}/modified_files_${buildLabel}.txt" label="Modified files" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<sshexec host="${unixserver}" trust="true" username="${unixid}" keyfile="${unixpassword}" failonerror="false" command="umask 022; ${system}/${Environment}/surround/cmd/rtc_build.sh ${debugopt} ${buildopt} ${sopt}; ${system}/${Environment}/surround/cmd/chk-bld-log-file ${system}/${Environment}/tmp/bld.log"/>
+<echo message="COPYING ERROR LOG FILES"/>
+<sshexec host="${unixserver}" trust="true" username="${unixid}" keyfile="${unixpassword}" command="umask 022; cp ${system}/build/logfiles/${Environment}/Build_Errors/Build-Error-log.log ${system}/build/logfiles/${Environment}/Build_Errors/Build-Error-log-${buildLabel}.log; cp ${system}/build/logfiles/${Environment}/Build_Errors/Build-Error-list.txt ${system}/build/logfiles/${Environment}/Build_Errors/Build-Error-list-${buildLabel}.txt; cp ${system}/${Environment}/tmp/bld-errors.log ${system}/build/logfiles/${Environment}/bld-errors-${buildLabel}.log; cp ${system}/${Environment}/tmp/bld.log ${system}/build/logfiles/${Environment}/bld-${buildLabel}.log"/>
+<length file="/build/BABuild/logfiles/${Environment}/Build_Errors/Build-Error-list.txt" property="errlength"/>
+<condition property="errtest">
+<not>
+<equals arg1="${errlength}" arg2="0"/>
+</not>
+</condition>
+<!--  Finish "compile" RTC activity  -->
+<completeBuildActivity activityId="${compile}" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+</target>
+<target name="publish" depends="compile">
+<!--  Start "publish" RTC activity  -->
+<startBuildActivity activityIdProperty="publish" label="PUBLISHING TXT FILE BACK TO RTC..." buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<echo message="Build Result UUID: ${buildResultUUID}"/>
+<echo message="Build Result Requester: ${buildRequesterUserId}"/>
+<echo message="Repository Address: ${repositoryAddress}"/>
+<echo message="Build Time: ${buildLabel}"/>
+<!--  Publish bld errors log to RTC  -->
+<logPublisher filePath="/build/BABuild/logfiles/${Environment}/bld-errors-${buildLabel}.log" label="chkbld Errors" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<logPublisher filePath="/build/BABuild/logfiles/${Environment}/bld-${buildLabel}.log" label="complete build log" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<!--  Finish "publish" RTC activity  -->
+<completeBuildActivity activityId="${publish}" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+</target>
+<target name="changes" depends="publish" if="regbuild">
+<!--  Start "Publish changes" RTC activity  -->
+<startBuildActivity activityIdProperty="changes" label="PUBLISHING CHANGES TXT FILE BACK TO RTC..." buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<sshexec host="${unixserver}" trust="true" username="${unixid}" keyfile="${unixpassword}" command="umask 022; touch ${system}/build/${Release}/${Environment}buildChanges-${buildLabel}.txt; touch ${system}/build/${Release}/${Environment}buildChangesdtl-${buildLabel}.txt"/>
+<!--  Publish change log to RTC  -->
+<generateChangeLog currentBuildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" changeLogFile="${Environment}buildChanges-${buildLabel}.txt" failOnError="false" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<generateChangeLog currentBuildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" showFileChanges="true" changeLogFile="${Environment}buildChangesdtl-${buildLabel}.txt" failOnError="false" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<property name="chgfile" value="${system}/build/logfiles/${Environment}/Build_Changes/buildChanges-${buildLabel}.txt"/>
+<property name="chgfile1" value="${system}/build/logfiles/${Environment}/Build_Changes/buildChangesdtl-${buildLabel}.txt"/>
+<echo message="MOVING CHANGE LOGS"/>
+<sshexec host="${unixserver}" trust="true" username="${unixid}" keyfile="${unixpassword}" command="umask 022; sed '/Work Item/ d' ${system}/build/${Release}/${Environment}buildChanges-${buildLabel}.txt > ${chgfile}; sed '/Work Item/ d' ${system}/build/${Release}/${Environment}buildChangesdtl-${buildLabel}.txt > ${chgfile1}; rm ${system}/build/${Release}/${Environment}buildChanges-${buildLabel}.txt; rm ${system}/build/${Release}/${Environment}buildChangesdtl-${buildLabel}.txt"/>
+<length file="/build/BABuild/logfiles/${Environment}/Build_Changes/buildChanges-${buildLabel}.txt" property="chglength"/>
+<condition property="chgtest">
+<not>
+<equals arg1="${chglength}" arg2="0"/>
+</not>
+</condition>
+<!--  Finish "Publish changes" RTC activity  -->
+<completeBuildActivity activityId="${changes}" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+</target>
+<target name="chgemail" depends="changes" if="chgtest">
+<startBuildActivity activityIdProperty="chgemail" label="SENDING CHANGE EMAIL..." buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<echo message="SENDING CHANGE EMAIL"/>
+<sshexec host="${unixserver}" trust="true" username="${unixid}" keyfile="${unixpassword}" command="umask 022; ${system}/${Environment}/surround/cmd/changes_email.sh ${chgfile1} ${chgfile}"/>
+<completeBuildActivity activityId="${chgemail}" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+</target>
+<target name="bldtest" depends="chgemail" if="errtest">
+<startBuildActivity activityIdProperty="bldtest" label="CHECKING BUILD ERRORS..." buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<!--  Publish bld errors list to RTC  -->
+<logPublisher filePath="/build/BABuild/logfiles/${Environment}/Build_Errors/Build-Error-log-${buildLabel}.log" label="RTC Build Errors" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<logPublisher filePath="/build/BABuild/logfiles/${Environment}/Build_Errors/Build-Error-list-${buildLabel}.txt" label="RTC Build Errors Program List" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+<fail message="** COMPILE ERRORS IN BUILD **" status="10"/>
+<completeBuildActivity activityId="${bldtest}" buildResultUUID="${buildResultUUID}" repositoryAddress="${repositoryAddress}" userId="${rtcid}" passwordFile="${rtcpassword}"/>
+</target>
+<!--  Taskdef declarations  -->
+<taskdef name="startBuildActivity" classname="com.ibm.team.build.ant.task.StartBuildActivityTask"/>
+<taskdef name="completeBuildActivity" classname="com.ibm.team.build.ant.task.CompleteBuildActivityTask"/>
+<taskdef name="logPublisher" classname="com.ibm.team.build.ant.task.LogPublisherTask"/>
+<taskdef name="generateChangeLog" classname="com.ibm.team.build.ant.task.GenerateChangeLogTask"/>
+</project>
